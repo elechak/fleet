@@ -171,15 +171,15 @@ type Interp struct{
     host string
     user string
     write_time int64
-    stdout string
+    Stdout string
     stdout_buffer bytes.Buffer
     stdout_read_time int64
-    stderr string
+    Stderr string
     stderr_buffer bytes.Buffer
     stderr_read_time int64
-    stdin_buffer io.WriteCloser
-    exit_status string
+    Exit_status string
     exit_read_time int64
+    stdin_buffer io.WriteCloser
 }
 
 func check(err error){
@@ -238,7 +238,7 @@ func NewInterp(lang, host, user, password, key string) *Interp{
         if (e != nil){
             xx := e.(*ssh.ExitError)
             yy := xx.Waitmsg
-            i.exit_status = fmt.Sprintf("%v", yy.ExitStatus())
+            i.Exit_status = fmt.Sprintf("%v", yy.ExitStatus())
         }
     }(i)
 
@@ -246,16 +246,12 @@ func NewInterp(lang, host, user, password, key string) *Interp{
 }
 
 
-func (self *Interp) Get() (string, string, string){
-    return self.stdout, self.stderr, self.exit_status
-
-}
 
 func (self *Interp) Write(data string){
     self.stdout_read_time = 0
     self.stderr_read_time = 0
-    self.stdout = ""
-    self.stderr = ""
+    self.Stdout = ""
+    self.Stderr = ""
     s:= strings.Join([]string{data, "\x04"}, "")
     _,_ = self.stdin_buffer.Write([]byte(s))
     self.write_time = time.Now().UnixNano()
@@ -277,7 +273,7 @@ func (self *Interp) Read() int64 {
         s,_ := self.stdout_buffer.ReadBytes( '\x04')
         self.stdout_read_time = time.Now().UnixNano()
         if (i > 0 ){
-            self.stdout = string(s[0:i])
+            self.Stdout = string(s[0:i])
         }
     }
 
@@ -288,7 +284,7 @@ func (self *Interp) Read() int64 {
         s,_ := self.stderr_buffer.ReadBytes( '\x04')
         self.stderr_read_time = time.Now().UnixNano()
         if (i >0 ){
-            self.stderr = string(s[0:i])
+            self.Stderr = string(s[0:i])
         }
     }
     
@@ -299,36 +295,30 @@ func (self *Interp) Read() int64 {
     return self.exit_read_time
 }
 
-
 func (self *Interp) Show(){
     fmt.Println("HOST: ", self.host)
     fmt.Println("USER: ", self.user)
     fmt.Println("LANG: ", self.lang)
-    fmt.Println("STDOUT: ", self.stdout)
-    fmt.Println("STDERR: ", self.stderr)
-    fmt.Println("EXIT: ", self.exit_status)
+    fmt.Println("STDOUT: ", self.Stdout)
+    fmt.Println("STDERR: ", self.Stderr)
+    fmt.Println("EXIT: ", self.Exit_status)
 }
 
 func (self *Interp) Time() int64{
     return self.Read() - self.write_time
 }
 
-
-func (self *Interp) Request(req string) (string,string,string){
+func (self *Interp) Request(req string){
     self.Write(req)
     self.Wait(1.0)
-    return self.stdout, self.stderr, self.exit_status
 }
 
 func (self *Interp) Wait(delay float64){
     for {
-        if self.Read() != 0 {
-            break
-        }
+        if self.Read() != 0 {break}
         time.Sleep(time.Duration(delay * float64(time.Second)))
     }
 }
-
 
 
 // POOL FUNCTIONS
@@ -356,23 +346,15 @@ func Request(interps []*Interp, data string){
     Wait(interps, 0.1)
 }
 
-func Sleep(delay float64){
-    time.Sleep(time.Duration(delay * float64(time.Second)))
-}
-
-
 func Show(interps []*Interp){
     for _,i:= range interps{
         i.Show()
     }    
 }
 
-//~ func Get(interps []*Interp){
-    //~ var out 
-    //~ for _,i:= range interps{
-        //~ i.Show()
-    //~ }    
-//~ }
+func Sleep(delay float64){
+    time.Sleep(time.Duration(delay * float64(time.Second)))
+}
 
 
 
