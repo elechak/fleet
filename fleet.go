@@ -170,6 +170,7 @@ type Interp struct{
     lang string
     host string
     user string
+    session *ssh.Session
     write_time int64
     Stdout string
     stdout_buffer bytes.Buffer
@@ -180,12 +181,6 @@ type Interp struct{
     Exit_status string
     exit_read_time int64
     stdin_buffer io.WriteCloser
-}
-
-func check(err error){
-    if err != nil{
-        panic(err)
-    }
 }
 
 
@@ -201,12 +196,8 @@ func NewInterp(lang, host, user, password, key string) *Interp{
     config := &ssh.ClientConfig{User: user}
     
     if len(key) > 0{
-        data,err := ioutil.ReadFile(key)
-            check(err)
-            
-        k, err := ssh.ParsePrivateKey(data)
-            check(err)
-        
+        data,_ := ioutil.ReadFile(key)
+        k, _ := ssh.ParsePrivateKey(data)
         am = append(am, ssh.PublicKeys(k))
     }
     
@@ -223,6 +214,8 @@ func NewInterp(lang, host, user, password, key string) *Interp{
 
     session, err := client.NewSession()
         if err != nil {fmt.Println(err)}
+    
+    i.session = session
 
     session.Stdout = &i.stdout_buffer
     session.Stderr = &i.stderr_buffer
@@ -245,7 +238,9 @@ func NewInterp(lang, host, user, password, key string) *Interp{
     return i
 }
 
-
+func (self *Interp) Close(){
+    self.session.Close()
+}
 
 func (self *Interp) Write(data string){
     self.stdout_read_time = 0
