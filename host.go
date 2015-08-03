@@ -76,9 +76,10 @@ func (self *Group) Resources() Resources{
 
 func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps []*Interp){
     res := self.Resources()
-    tmp := Resources{}
     var out Resources
+    
     for{
+        tmp := Resources{}
         // filter 
         for _,r := range res{
             if r.Memory < mem_requirement{continue}
@@ -88,17 +89,17 @@ func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps [
 
         if len(tmp) == 0 { break }
 
-        sort.Sort(res)
-        r := res[0]
+        sort.Sort(sort.Reverse(res))
+        
+        r := tmp[0]
         r.Cpus -= 1.0
         r.Memory -= mem_requirement
         r.Benchmark -= r.Benchmark * 0.1
         out = append(out,r)
         res = tmp
-        tmp = Resources{}
     }
 
-    for i,r := range res{
+    for i,r := range out{
         interps = append(interps,self.Hosts[r.Hostname].GetInterp(lang) )
         if i >= max {break}
     }
@@ -294,7 +295,7 @@ func getMeminfo(i *Interp)map[string]float64{
     }    
 
     return map[string]float64{
-        "memtotal": memtotal * 1000.0,
+        "memtotal": memtotal / 1000000.0,
         "memutil":1.0 - (float64(memfree + meminactive) / float64(memtotal)),
     }
 }
