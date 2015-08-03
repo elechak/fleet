@@ -6,6 +6,10 @@ import (
     "fmt"
     "strings"
     "strconv"
+    "encoding/json"
+    "io/ioutil"
+    "sync"
+    "sort"
 )
 
 
@@ -30,6 +34,136 @@ type Host struct{
     Logins     map[string]Login
 }
 
+type Group struct{
+    Name string
+    Hosts     map[string]*Host
+}
+
+type Resource struct{
+    Hostname string
+    Cpus float64
+    Memory float64
+    Benchmark float64
+}
+
+type Resources []*Resource
+
+func (self Resources) Len() int {return len(self)}
+func (self Resources) Swap(a,b int){self[a],self[b] = self[b],self[a]}
+func (self Resources) Less(a,b int) bool { return self[a].Benchmark < self[b].Benchmark }
+
+
+func (self *Host) Resource()(r *Resource){
+    r = new(Resource)
+    r.Hostname= self.Hostname
+    r.Cpus    = self.Cpus
+    r.Memory  = (1.0 - self.Memutil) * self.Memory
+    adj_load := 1.0 - self.Load1
+    adj_wait := 1.0 - self.Wait
+    r.Benchmark = self.Benchmark * adj_load * adj_wait
+    return r
+}
+
+func (self *Group) Resources() Resources{
+    var res Resources
+    for _,v := range self.Hosts{
+        r := v.Resource()
+        res = append(res, r )
+    }
+    return res
+}
+
+
+func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps []*Interp){
+    res := self.Resources()
+    tmp := Resources{}
+    var out Resources
+    for{
+        // filter 
+        for _,r := range res{
+            if r.Memory < mem_requirement{continue}
+            if r.Cpus <= 0.0 {continue}
+            tmp = append(tmp, r)
+        }
+
+        if len(tmp) == 0 { break }
+
+        sort.Sort(res)
+        r := res[0]
+        r.Cpus -= 1.0
+        r.Memory -= mem_requirement
+        r.Benchmark -= r.Benchmark * 0.1
+        out = append(out,r)
+        res = tmp
+        tmp = Resources{}
+    }
+
+    for i,r := range res{
+        interps = append(interps,self.Hosts[r.Hostname].GetInterp(lang) )
+        if i >= max {break}
+    }
+    return interps
+}
+
+
+func NewGroup( name string )*Group{
+    self := new(Group)
+    self.Name = name
+    self.Hosts = make(map[string]*Host)
+    return self
+}
+
+func LoadGroup( filename string) *Group{
+    var group Group
+    s,_ := ioutil.ReadFile(filename)
+    json.Unmarshal(s, &group)
+    return &group
+}
+
+
+func (self *Group) AddHost(hostname string) *Host{
+    h := NewHost(hostname)
+    self.Hosts[hostname] =  h
+    return h
+}
+
+func (self *Group) GetHost( hostname string) *Host{
+    return self.Hosts[hostname]
+}
+
+func (self *Group) List(){
+    var a []string
+    for k,_ := range self.Hosts{
+        a=append(a,k)
+    }
+    fmt.Println(a)
+}
+
+func (self *Group) GetStatus(){
+    var wg sync.WaitGroup
+    for _,v := range self.Hosts{
+        wg.Add(1)
+        go func(v *Host){
+            defer wg.Done()
+            v.GetStatus()
+        }(v)
+    }
+    wg.Wait()
+}
+
+
+func (self *Group) Show(){
+    for _,v := range self.Hosts{
+        v.Show()
+    }
+}
+
+func (self *Group) Save(filename string){
+    s,_ := json.Marshal(self)
+    ioutil.WriteFile(filename, []byte(s), 0644)
+}
+
+
 func NewHost(name string)*Host{
     h := new(Host)
     h.Hostname = name
@@ -41,8 +175,8 @@ func (h *Host) AddLogin (username, password string){
     h.Logins[username] = Login{Username:username, Password:password}
 }
 
-func (h *Host) GetHostStatus (){
-    i:=h.GetInterp("bash")
+func (h *Host) GetStatus(){
+    i := h.GetInterp("bash")
     status := getInfo(i)
     h.Cpus      = status["#cpu"]
     h.Benchmark = status["bench"]
@@ -55,22 +189,23 @@ func (h *Host) GetHostStatus (){
     i.Close()
 }
 
-func (h *Host)ShowHost(){
+func (h *Host)Show(){
     fmt.Printf("Hostname: %s\n", h.Hostname)
     fmt.Printf("CPUs: %f\n", h.Cpus)
+    fmt.Printf("Benchmark: %f\n", h.Benchmark)
     fmt.Printf("Memory: %f\n", h.Memory)
     fmt.Printf("Load 1 : %f\n", h.Load1)
     fmt.Printf("Load 5 : %f\n", h.Load5)
     fmt.Printf("Load 15: %f\n", h.Load15)
     fmt.Printf("Wait: %f\n", h.Wait)
     fmt.Printf("Mem Util: %f\n", h.Memutil)
-    fmt.Printf("\nLogins\n")
+    fmt.Printf("Logins:\n")
 
     for _,x := range h.Logins{
         fmt.Printf("    %s\n", x.Username)
         fmt.Printf("        pass: %s\n", x.Password)
-        //~ fmt.Printf("        key : %s\n", x.Key)
     }
+    fmt.Println()
     fmt.Println()
 }
 
