@@ -13,25 +13,30 @@ import (
 )
 
 
-type Login struct{
-    Username    string
-    Password    string
-    KeyPassword string
-    KeyPublic   string
-    KeyPrivate  string
-}
+//~ type Login struct{
+    //~ Username    string
+    //~ Password    string
+    //~ KeyPassword string
+    //~ KeyPublic   string
+    //~ KeyPrivate  string
+//~ }
 
 type Host struct{
-    Hostname   string
-    Cpus       float64
-    Benchmark  float64
-    Memory     float64
-    Load1      float64
-    Load5      float64
-    Load15     float64
-    Memutil    float64
-    Wait       float64
-    Logins     map[string]Login
+    Hostname    string
+    Cpus        float64
+    Benchmark   float64
+    Memory      float64
+    Load1       float64
+    Load5       float64
+    Load15      float64
+    Memutil     float64
+    Wait        float64
+    //~ Logins      map[string]Login
+    Username    string
+    Password    string
+    Keypassword string
+    Keypublic   string
+    Keyprivate  string
 }
 
 type Group struct{
@@ -128,9 +133,15 @@ func (self *Group) AddHost(hostname string) *Host{
     return h
 }
 
-func (self *Group) GetHost( hostname string) *Host{
+func (self *Group) Host( hostname string) *Host{
     return self.Hosts[hostname]
 }
+
+func (self *Host) Login(username, password string){
+    self.Username = username
+    self.Password = password
+}
+
 
 func (self *Group) List(){
     var a []string
@@ -164,17 +175,16 @@ func (self *Group) Save(filename string){
     ioutil.WriteFile(filename, []byte(s), 0644)
 }
 
-
 func NewHost(name string)*Host{
     h := new(Host)
     h.Hostname = name
-    h.Logins = make(map[string]Login)
+    //~ h.Logins = make(map[string]Login)
     return h
 }
 
-func (h *Host) AddLogin (username, password string){
-    h.Logins[username] = Login{Username:username, Password:password}
-}
+//~ func (h *Host) AddLogin (username, password string){
+    //~ h.Logins[username] = Login{Username:username, Password:password}
+//~ }
 
 func (h *Host) GetStatus(){
     i := h.GetInterp("bash")
@@ -192,6 +202,12 @@ func (h *Host) GetStatus(){
 
 func (h *Host)Show(){
     fmt.Printf("Hostname: %s\n", h.Hostname)
+    fmt.Printf("Username: %s\n", h.Username)
+    fmt.Printf("Password: %s\n", h.Password)
+    fmt.Printf("Keypassword: %s\n", h.Keypassword)
+    fmt.Printf("Keypublic: %s\n", h.Keypublic)
+    fmt.Printf("Keyprivate: %s\n", h.Keyprivate)
+    
     fmt.Printf("CPUs: %f\n", h.Cpus)
     fmt.Printf("Benchmark: %f\n", h.Benchmark)
     fmt.Printf("Memory: %f\n", h.Memory)
@@ -200,28 +216,18 @@ func (h *Host)Show(){
     fmt.Printf("Load 15: %f\n", h.Load15)
     fmt.Printf("Wait: %f\n", h.Wait)
     fmt.Printf("Mem Util: %f\n", h.Memutil)
-    fmt.Printf("Logins:\n")
+    //~ fmt.Printf("Logins:\n")
 
-    for _,x := range h.Logins{
-        fmt.Printf("    %s\n", x.Username)
-        fmt.Printf("        pass: %s\n", x.Password)
-    }
+    //~ for _,x := range h.Logins{
+        //~ fmt.Printf("    %s\n", x.Username)
+        //~ fmt.Printf("        pass: %s\n", x.Password)
+    //~ }
     fmt.Println()
     fmt.Println()
 }
 
 func (h *Host)GetInterp(lang string) *Interp{
-    var login Login
-    for _,x := range h.Logins{
-        login = x
-        break
-    }
-    return NewInterp(lang, h.Hostname, login.Username, login.Password, login.KeyPrivate)
-}
-
-func (h *Host)GetInterpAsUser(lang, user string) *Interp{
-    login := h.Logins[user]    
-    return NewInterp(lang, h.Hostname, login.Username, login.Password, login.KeyPrivate)
+    return NewInterp(lang, h.Hostname, h.Username, h.Password, h.Keyprivate)
 }
 
 
