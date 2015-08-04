@@ -101,12 +101,12 @@ func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps [
         r.Memory -= mem_requirement
         r.Benchmark -= r.Benchmark * 0.1
         out = append(out,r)
+        if len(out) == max {break}
         res = tmp
     }
 
-    for i,r := range out{
+    for _,r := range out{
         interps = append(interps,self.Hosts[r.Hostname].GetInterp(lang) )
-        if i >= max {break}
     }
     return interps
 }
@@ -243,7 +243,12 @@ func getStat(i *Interp) map[string]float64{
         if strings.HasPrefix(line, "cpu "){
             a = splitTrim(line, "", " \r\n\t")
             usertime,_ = strconv.ParseFloat(a[1], 64)
-            iowait,_ = strconv.ParseFloat(a[5], 64)
+            if len(a) >= 6{
+                iowait,_ = strconv.ParseFloat(a[5], 64)
+            }else{
+                iowait = 0.0
+            }
+            
             break
         }
     }
@@ -309,15 +314,20 @@ func getMeminfo(i *Interp)map[string]float64{
 
 func getBench(i *Interp)map[string]float64{
     bench :=`
-        start=$(date +%s%N)
+        read -r line < "/proc/uptime"
+        x=(${line//./})
+        start="${x[0]}"
         a=0
-        while [[ $a -le 10000 ]]
+        while [[ $a -le 100000 ]]
         do
-            a=$(( $a+1 ))
-            elapsed=$(( $(date +%s%N)-$start ))
-            if [[ $elapsed -gt  1000000000 ]];then
+            a=$(( $a+1 ))    
+            read -r line < "/proc/uptime"
+            x=(${line//./})
+            now="${x[0]}"
+            elapsed=$(( $now-$start))
+            if [[ $elapsed -ge  100 ]];then
                 break
-            fi
+            fi        
         done
         echo -n $a
     `
