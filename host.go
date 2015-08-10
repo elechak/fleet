@@ -35,15 +35,13 @@ type Host struct{
 }
 
 type Group struct{
-    Name string
     Hosts     map[string]*Host
 }
 
 
 // GROUP
-func NewGroup( name string )*Group{
+func NewGroup()*Group{
     self := new(Group)
-    self.Name = name
     self.Hosts = make(map[string]*Host)
     return self
 }
@@ -124,15 +122,7 @@ func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps [
 
         sort.Sort(sort.Reverse(byResource(tmp)))
         
-        //~ for _,r := range tmp{
-            //~ fmt.Println("-------")
-            //~ fmt.Println(r)
-        //~ }
-        //~ fmt.Println("++++++++++")
-        
-        
         r := tmp[0]
-        //~ fmt.Println(r)
         r.ACpus -= 1.0
         r.AMemory -= mem_requirement
         r.ABenchmark -= r.ABenchmark * 0.1
