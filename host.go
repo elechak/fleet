@@ -13,14 +13,6 @@ import (
 )
 
 
-//~ type Login struct{
-    //~ Username    string
-    //~ Password    string
-    //~ KeyPassword string
-    //~ KeyPublic   string
-    //~ KeyPrivate  string
-//~ }
-
 type Host struct{
     Hostname    string
     Cpus        float64
