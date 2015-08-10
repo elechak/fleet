@@ -47,7 +47,6 @@ type Resource struct{
 }
 
 type Resources []*Resource
-
 func (self Resources) Len() int {return len(self)}
 func (self Resources) Swap(a,b int){self[a],self[b] = self[b],self[a]}
 func (self Resources) Less(a,b int) bool { return self[a].Benchmark < self[b].Benchmark }
@@ -62,28 +61,6 @@ func (self *Host) Resource()(r *Resource){
     adj_wait := 1.0 - self.Wait
     r.Benchmark = self.Benchmark * adj_load * adj_wait
     return r
-}
-
-
-
-// GROUP
-func NewGroup( name string )*Group{
-    self := new(Group)
-    self.Name = name
-    self.Hosts = make(map[string]*Host)
-    return self
-}
-
-func LoadGroup( filename string) *Group{
-    var group Group
-    s,_ := ioutil.ReadFile(filename)
-    json.Unmarshal(s, &group)
-    return &group
-}
-
-func (self *Group) Save(filename string){
-    s,_ := json.Marshal(self)
-    ioutil.WriteFile(filename, []byte(s), 0644)
 }
 
 func (self *Group) Resources() Resources{
@@ -128,6 +105,30 @@ func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps [
 }
 
 
+
+
+
+
+// GROUP
+func NewGroup( name string )*Group{
+    self := new(Group)
+    self.Name = name
+    self.Hosts = make(map[string]*Host)
+    return self
+}
+
+func LoadGroup( filename string) *Group{
+    var group Group
+    s,_ := ioutil.ReadFile(filename)
+    json.Unmarshal(s, &group)
+    return &group
+}
+
+func (self *Group) Save(filename string){
+    s,_ := json.Marshal(self)
+    ioutil.WriteFile(filename, []byte(s), 0644)
+}
+
 func (self *Group) AddHost(hostname string) *Host{
     h := NewHost(hostname)
     self.Hosts[hostname] =  h
@@ -158,7 +159,6 @@ func (self *Group) GetStatus(){
     wg.Wait()
 }
 
-
 func (self *Group) Show(){
     for _,v := range self.Hosts{
         v.Show()
@@ -185,6 +185,7 @@ func (self *Host) Login(username, password string){
 func (h *Host) GetStatus(){
     i := h.GetInterp("bash")
     status := getInfo(i)
+    i.Close()
     h.Cpus      = status["#cpu"]
     h.Benchmark = status["bench"]
     h.Memory    = status["memtotal"]
@@ -193,15 +194,12 @@ func (h *Host) GetStatus(){
     h.Load15    = status["load15"]
     h.Memutil   = status["memutil"]
     h.Wait      = status["wait"]
-    i.Close()
     
     h.ACpus    = h.Cpus
     h.AMemory  = (1.0 - h.Memutil) * h.Memory
     adj_load := 1.0 - h.Load1
     adj_wait := 1.0 - h.Wait
     h.ABenchmark = h.Benchmark * adj_load * adj_wait    
-    
-    
 }
 
 func (h *Host)Show(){
