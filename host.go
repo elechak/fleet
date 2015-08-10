@@ -32,7 +32,6 @@ type Host struct{
     ACpus float64
     AMemory float64
     ABenchmark float64    
-    
 }
 
 type Group struct{
@@ -65,6 +64,28 @@ func (self *Host) Resource()(r *Resource){
     return r
 }
 
+
+
+// GROUP
+func NewGroup( name string )*Group{
+    self := new(Group)
+    self.Name = name
+    self.Hosts = make(map[string]*Host)
+    return self
+}
+
+func LoadGroup( filename string) *Group{
+    var group Group
+    s,_ := ioutil.ReadFile(filename)
+    json.Unmarshal(s, &group)
+    return &group
+}
+
+func (self *Group) Save(filename string){
+    s,_ := json.Marshal(self)
+    ioutil.WriteFile(filename, []byte(s), 0644)
+}
+
 func (self *Group) Resources() Resources{
     var res Resources
     for _,v := range self.Hosts{
@@ -73,7 +94,6 @@ func (self *Group) Resources() Resources{
     }
     return res
 }
-
 
 func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps []*Interp){
     res := self.Resources()
@@ -108,26 +128,6 @@ func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps [
 }
 
 
-
-
-
-
-
-func NewGroup( name string )*Group{
-    self := new(Group)
-    self.Name = name
-    self.Hosts = make(map[string]*Host)
-    return self
-}
-
-func LoadGroup( filename string) *Group{
-    var group Group
-    s,_ := ioutil.ReadFile(filename)
-    json.Unmarshal(s, &group)
-    return &group
-}
-
-
 func (self *Group) AddHost(hostname string) *Host{
     h := NewHost(hostname)
     self.Hosts[hostname] =  h
@@ -137,12 +137,6 @@ func (self *Group) AddHost(hostname string) *Host{
 func (self *Group) Host( hostname string) *Host{
     return self.Hosts[hostname]
 }
-
-func (self *Host) Login(username, password string){
-    self.Username = username
-    self.Password = password
-}
-
 
 func (self *Group) List(){
     var a []string
@@ -171,10 +165,11 @@ func (self *Group) Show(){
     }
 }
 
-func (self *Group) Save(filename string){
-    s,_ := json.Marshal(self)
-    ioutil.WriteFile(filename, []byte(s), 0644)
-}
+
+
+
+
+// HOST
 
 func NewHost(name string)*Host{
     h := new(Host)
@@ -182,7 +177,10 @@ func NewHost(name string)*Host{
     return h
 }
 
-
+func (self *Host) Login(username, password string){
+    self.Username = username
+    self.Password = password
+}
 
 func (h *Host) GetStatus(){
     i := h.GetInterp("bash")
@@ -235,6 +233,9 @@ func (h *Host)GetInterp(lang string) *Interp{
     return NewInterp(lang, h.Hostname, h.Username, h.Password, h.Keyprivate)
 }
 
+
+
+// INTERP
 
 func getStat(i *Interp) map[string]float64{
     var usertime float64
