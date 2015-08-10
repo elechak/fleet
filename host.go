@@ -96,10 +96,10 @@ func (self *Group) Show(){
     }
 }
 
-type byBench []*Host
-func (self byBench) Len() int {return len(self)}
-func (self byBench) Swap(a,b int){self[a],self[b] = self[b],self[a]}
-func (self byBench) Less(a,b int) bool { return self[a].Benchmark < self[b].Benchmark }
+type byResource []*Host
+func (self byResource) Len() int {return len(self)}
+func (self byResource) Swap(a,b int){self[a],self[b] = self[b],self[a]}
+func (self byResource) Less(a,b int) bool { return self[a].ABenchmark < self[b].ABenchmark }
 
 
 func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps []*Interp){
@@ -112,6 +112,7 @@ func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps [
     }
 
     for{
+        tmp = []*Host{}
         // filter 
         for _,r := range res{
             if r.AMemory < mem_requirement{continue}
@@ -121,12 +122,20 @@ func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps [
 
         if len(tmp) == 0 { break }
 
-        sort.Sort(sort.Reverse(byBench(tmp)))
+        sort.Sort(sort.Reverse(byResource(tmp)))
+        
+        //~ for _,r := range tmp{
+            //~ fmt.Println("-------")
+            //~ fmt.Println(r)
+        //~ }
+        //~ fmt.Println("++++++++++")
+        
         
         r := tmp[0]
-        r.Cpus -= 1.0
-        r.Memory -= mem_requirement
-        r.Benchmark -= r.Benchmark * 0.1
+        //~ fmt.Println(r)
+        r.ACpus -= 1.0
+        r.AMemory -= mem_requirement
+        r.ABenchmark -= r.ABenchmark * 0.1
         out = append(out,r)
         if len(out) == max {break}
         res = tmp
