@@ -28,6 +28,11 @@ type Host struct{
     Keypassword string
     Keypublic   string
     Keyprivate  string
+    
+    ACpus float64
+    AMemory float64
+    ABenchmark float64    
+    
 }
 
 type Group struct{
@@ -194,6 +199,14 @@ func (h *Host) GetStatus(){
     h.Memutil   = status["memutil"]
     h.Wait      = status["wait"]
     i.Close()
+    
+    h.ACpus    = h.Cpus
+    h.AMemory  = (1.0 - h.Memutil) * h.Memory
+    adj_load := 1.0 - h.Load1
+    adj_wait := 1.0 - h.Wait
+    h.ABenchmark = h.Benchmark * adj_load * adj_wait    
+    
+    
 }
 
 func (h *Host)Show(){
