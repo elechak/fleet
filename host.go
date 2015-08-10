@@ -179,13 +179,10 @@ func (self *Group) Save(filename string){
 func NewHost(name string)*Host{
     h := new(Host)
     h.Hostname = name
-    //~ h.Logins = make(map[string]Login)
     return h
 }
 
-//~ func (h *Host) AddLogin (username, password string){
-    //~ h.Logins[username] = Login{Username:username, Password:password}
-//~ }
+
 
 func (h *Host) GetStatus(){
     i := h.GetInterp("bash")
@@ -225,12 +222,11 @@ func (h *Host)Show(){
     fmt.Printf("Load 15: %f\n", h.Load15)
     fmt.Printf("Wait: %f\n", h.Wait)
     fmt.Printf("Mem Util: %f\n", h.Memutil)
-    //~ fmt.Printf("Logins:\n")
 
-    //~ for _,x := range h.Logins{
-        //~ fmt.Printf("    %s\n", x.Username)
-        //~ fmt.Printf("        pass: %s\n", x.Password)
-    //~ }
+    fmt.Printf("Avail Mem: %f\n", h.AMemory)
+    fmt.Printf("Avail CPUs: %f\n", h.ACpus)
+    fmt.Printf("Avail Bench: %f\n", h.ABenchmark)
+
     fmt.Println()
     fmt.Println()
 }
