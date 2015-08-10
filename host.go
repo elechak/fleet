@@ -39,75 +39,6 @@ type Group struct{
     Hosts     map[string]*Host
 }
 
-type Resource struct{
-    Hostname string
-    Cpus float64
-    Memory float64
-    Benchmark float64
-}
-
-type Resources []*Resource
-func (self Resources) Len() int {return len(self)}
-func (self Resources) Swap(a,b int){self[a],self[b] = self[b],self[a]}
-func (self Resources) Less(a,b int) bool { return self[a].Benchmark < self[b].Benchmark }
-
-
-func (self *Host) Resource()(r *Resource){
-    r = new(Resource)
-    r.Hostname= self.Hostname
-    r.Cpus    = self.Cpus
-    r.Memory  = (1.0 - self.Memutil) * self.Memory
-    adj_load := 1.0 - self.Load1
-    adj_wait := 1.0 - self.Wait
-    r.Benchmark = self.Benchmark * adj_load * adj_wait
-    return r
-}
-
-func (self *Group) Resources() Resources{
-    var res Resources
-    for _,v := range self.Hosts{
-        r := v.Resource()
-        res = append(res, r )
-    }
-    return res
-}
-
-func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps []*Interp){
-    res := self.Resources()
-    var out Resources
-    
-    for{
-        tmp := Resources{}
-        // filter 
-        for _,r := range res{
-            if r.Memory < mem_requirement{continue}
-            if r.Cpus <= 0.0 {continue}
-            tmp = append(tmp, r)
-        }
-
-        if len(tmp) == 0 { break }
-
-        sort.Sort(sort.Reverse(res))
-        
-        r := tmp[0]
-        r.Cpus -= 1.0
-        r.Memory -= mem_requirement
-        r.Benchmark -= r.Benchmark * 0.1
-        out = append(out,r)
-        if len(out) == max {break}
-        res = tmp
-    }
-
-    for _,r := range out{
-        interps = append(interps,self.Hosts[r.Hostname].GetInterp(lang) )
-    }
-    return interps
-}
-
-
-
-
-
 
 // GROUP
 func NewGroup( name string )*Group{
@@ -165,6 +96,47 @@ func (self *Group) Show(){
     }
 }
 
+type byBench []*Host
+func (self byBench) Len() int {return len(self)}
+func (self byBench) Swap(a,b int){self[a],self[b] = self[b],self[a]}
+func (self byBench) Less(a,b int) bool { return self[a].Benchmark < self[b].Benchmark }
+
+
+func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps []*Interp){
+    var out []*Host
+    var res []*Host
+    var tmp []*Host
+    
+    for _,v := range self.Hosts{
+        res = append(res, v )
+    }
+
+    for{
+        // filter 
+        for _,r := range res{
+            if r.AMemory < mem_requirement{continue}
+            if r.ACpus <= 0.0 {continue}
+            tmp = append(tmp, r)
+        }
+
+        if len(tmp) == 0 { break }
+
+        sort.Sort(sort.Reverse(byBench(tmp)))
+        
+        r := tmp[0]
+        r.Cpus -= 1.0
+        r.Memory -= mem_requirement
+        r.Benchmark -= r.Benchmark * 0.1
+        out = append(out,r)
+        if len(out) == max {break}
+        res = tmp
+    }
+
+    for _,r := range out{
+        interps = append(interps,self.Hosts[r.Hostname].GetInterp(lang) )
+    }
+    return interps
+}
 
 
 
