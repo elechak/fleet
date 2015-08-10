@@ -23,7 +23,6 @@ type Host struct{
     Load15      float64
     Memutil     float64
     Wait        float64
-    //~ Logins      map[string]Login
     Username    string
     Password    string
     Keypassword string
@@ -102,6 +101,11 @@ func (self *Group) Pool(lang string, max int,mem_requirement float64) (interps [
     }
     return interps
 }
+
+
+
+
+
 
 
 func NewGroup( name string )*Group{
