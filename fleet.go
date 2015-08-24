@@ -87,7 +87,19 @@ done
 '
 `
 
-
+langs["bash-cp"] = `bash -c '
+while :
+do
+read -r -d ":" filename
+read -r -d ":" size
+read -r -d "" -n "$size" data
+read -r -n 1 __C
+echo -n -e "$data"  > "$filename";
+echo -n -e "\x04";
+echo -n -e "\x04" 1>&2;
+done
+'
+`
 
 
 langs["docker-bash"] = `docker run --rm=true -i ubuntu /bin/bash -c '
